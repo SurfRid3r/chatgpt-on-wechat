@@ -7,6 +7,7 @@ from common.singleton import singleton
 from config import conf
 from channel.wechat_wxhelper.utils.api import WXAPIBot
 from channel.wechat_wxhelper.wxhelper_message import WXHelperMessage
+from common.time_check import time_checker
 
 # from channel.wechat.wechat_message import *
 
@@ -44,49 +45,55 @@ class WXHelperChannel(ChatChannel):
         # 启动服务器
         self.hookmsg_server.run()
 
+    
     def handle_msg(self, msg: dict):
-        group_id = msg.get("fromGroup")
-        user_wxid = msg.get("fromUser")
+        try:
+            wxhelper_cmsg = WXHelperMessage(self.wxapibot, msg, is_group=False)
+        except NotImplementedError as e:
+            logger.debug("[WXHelper] " + str(e))
+            return {"message": "fail"}
+
+        # 群聊
+        if wxhelper_cmsg.is_group:
+            self.handle_group(wxhelper_cmsg)
         # 私聊
-        if group_id == user_wxid:
-            self.handle_single(msg)
-        # 群里
-        elif "@chatroom" in group_id:
-            self.handle_group(msg)
+        else:
+            self.handle_single(wxhelper_cmsg)
+            
         # 其余暂不处理
         return {"message": "success"}
-
-    def handle_single(self, msg: dict):
+        
+    @time_checker
+    def handle_single(self, cmsg: WXHelperMessage):
         """
         处理个人私聊信息
         """
         user_white_list = conf().get("wxhelper_user_white_list", [])
-        user_wxid = msg.get("fromUser")
-        m_type = int(msg.get("type"))
         # 白名单过滤
-        if user_wxid not in user_white_list:
+        if cmsg.actual_user_nickname not in user_white_list:
             return
-        try:
-            wxhelper_cmsg = WXHelperMessage(self.wxapibot, msg, is_group=False)
-        except NotImplementedError as e:
-            logger.debug("[WXHelper] " + str(e))
-            return "success"
-        # context = channel._compose_context(
-        #     wechatcom_msg.ctype,
-        #     wechatcom_msg.content,
-        #     isgroup=False,
-        #     msg=wechatcom_msg,
-        # )
-
-    def handle_group(self, msg: dict):
+        # 处理文本内容
+        context = None
+        if cmsg.ctype == ContextType.TEXT:
+            logger.debug(f"[WXHelper] receive text msg: {cmsg.content}")
+            context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)
+            # context = self._compose_context(ContextType.TEXT, con, wxhelper_cmsg)
+        if context:
+            self.produce(context)
+    
+    @time_checker
+    def handle_group(self, cmsg: WXHelperMessage):
         """
         处理群聊信息
         """
-        try:
-            wxhelper_cmsg = WXHelperMessage(self.wxapibot, msg, is_group=False)
-        except NotImplementedError as e:
-            logger.debug("[WXHelper] " + str(e))
-            return "success"
-
-    def send(self):
         pass
+
+    def send(self, reply: Reply, context: Context):
+        receiver = context["receiver"]
+        # 群聊
+        if context["isgroup"]:
+            # 发送群聊
+            pass
+        if reply.type == ReplyType.TEXT:
+            logger.info("[WXHelper] sendMsg={}, receiver={}".format(reply, receiver))
+            self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
