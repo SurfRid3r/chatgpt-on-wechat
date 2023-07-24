@@ -3,6 +3,7 @@ import json
 from urllib.parse import urljoin
 from common.log import logger
 
+
 class WXHelperError(Exception):
     def __init__(self, message, api_type):
         self.message = "WeChatError: " + str(message)
@@ -35,18 +36,14 @@ class WXAPIBot:
         response = {"code": 0, "result": "Fail"}
         while retries < max_retries:
             try:
-                req = requests.request(
-                    "POST", url, headers=headers, data=payloads, timeout=timeout
-                )
+                req = requests.request("POST", url, headers=headers, data=payloads, timeout=timeout)
                 response = req.json()
                 break
             except requests.Timeout:
-                logger.error(
-                    f"[WXAPIBot]API request timeout, API type:{api_type}, Retrying...")
+                logger.error(f"[WXAPIBot]API request timeout, API type:{api_type}, Retrying...")
                 retries += 1
             except Exception as e:
-                logger.error(
-                    f"[WXAPIBot]API request fail, API type:{api_type}, Error Info: {e}")
+                logger.error(f"[WXAPIBot]API request fail, API type:{api_type}, Error Info: {e}")
                 raise e
         return response
 
@@ -96,14 +93,29 @@ class WXAPIBot:
         if response.get("code", 0):
             return response
         else:
-            logger.warning(
-                f"[WXAPIBot]Sending text msg fail, Payload: {payloads}, Repsonse: {json.dumps(response)}"
-            )
+            logger.warning(f"[WXAPIBot]Sending text msg fail, Payload: {payloads}, Repsonse: {json.dumps(response)}")
+            return None
+
+    def send_msg_at(self, msg, chat_room_id, wxids=["notify@all"]):
+        """
+        3.向指定聊天群发送at用户文本
+        msg: 文本信息
+        chat_room_id: 群id
+        wxids: at指定的用户数组,默认at所有人
+        """
+        logger.debug(f"[WXAPIBot]Sending msg at. chatroom:{chat_room_id}, msg:{msg}, at_users:{str(wxids)}.")
+        payloads = json.dumps({"wxids": ",".join(wxids), "msg": msg, "chatRoomId": chat_room_id})
+        # 发送文本
+        response = self.api_request(api_type="3", payloads=payloads)
+        if response.get("code", 0):
+            return response
+        else:
+            logger.warning(f"[WXAPIBot]Sending msg at fail, Payload: {payloads}, Repsonse: {json.dumps(response)}")
             return None
 
     def send_file_msg(self, filepath, wxid="filehelper"):
         """
-        向指定用户发送文件
+        6.向指定用户发送文件
         filePath: 文件路径
         wxid: 接收人wxid
         :return:
@@ -117,9 +129,7 @@ class WXAPIBot:
         if response.get("code", 0):
             return response
         else:
-            logger.warning(
-                f"[WXAPIBot]Sending file fail, Payload: {payloads}, Repsonse: {json.dumps(response)}"
-            )
+            logger.warning(f"[WXAPIBot]Sending file fail, Payload: {payloads}, Repsonse: {json.dumps(response)}")
             return None
 
     def hook_msg(
@@ -159,19 +169,14 @@ class WXAPIBot:
             if response.get("code", 0) == 1:
                 return True
             elif response.get("code", 0) == 2:
-                logger.debug(
-                    f"[WXAPIBot]Wechat had alerady benn hooked, try to unhook. retrirs:{max_retrirs}..."
-                )
+                logger.debug(f"[WXAPIBot]Wechat had alerady benn hooked, try to unhook. retrirs:{max_retrirs}...")
                 # 取消hook后重新hook
                 self.unhook_msg()
                 response = self.api_request(api_type, payloads=payloads)
-                logger.debug(
-                    f"[WXAPIBot]Hooking msg after unhooking, server: {server_addr}.")
+                logger.debug(f"[WXAPIBot]Hooking msg after unhooking, server: {server_addr}.")
                 max_retrirs -= 1
             else:
-                raise WXHelperReqError(
-                    api_type, payloads=payloads, repsonse=json.dumps(response)
-                )
+                raise WXHelperReqError(api_type, payloads=payloads, repsonse=json.dumps(response))
         raise WXHelperError(f"Fail to hook,max_retrirs: {max_retrirs}", api_type)
 
     def unhook_msg(self):
@@ -213,9 +218,7 @@ class WXAPIBot:
         26.获取群成员昵称
         :return: nickname str
         """
-        logger.debug(
-            f"[WXAPIBot]Fetching chatroom member nickname, chat room: {chatroomid} memebers: {wxid}."
-        )
+        logger.debug(f"[WXAPIBot]Fetching chatroom member nickname, chat room: {chatroomid} memebers: {wxid}.")
         api_type = "26"
         payloads = json.dumps({"chatRoomId": chatroomid, "memberId": wxid})
         response = self.api_request(api_type, payloads=payloads)
@@ -247,9 +250,7 @@ class WXAPIBot:
         logger.debug(f"[WXAPIBot]Querying db by sql: {sql} .")
         api_type = "34"
         if table_name not in sql:
-            raise WXHelperError(
-                f"Check querying db sql, Table: {table_name}, SQL: {sql} .", api_type
-            )
+            raise WXHelperError(f"Check querying db sql, Table: {table_name}, SQL: {sql} .", api_type)
         payloads = json.dumps(
             {
                 "dbHandle": self.get_dbhandler_by_name(table_name),
@@ -260,9 +261,7 @@ class WXAPIBot:
         if response.get("code", 0):
             return response.get("data")
         else:
-            logger.warning(
-                f"[WXAPIBot]Querying db by sql Fail. SQL: {sql}, reponse:{json.dumps(response)}"
-            )
+            logger.warning(f"[WXAPIBot]Querying db by sql Fail. SQL: {sql}, reponse:{json.dumps(response)}")
             return None
 
     def get_contact_list(self):
@@ -296,14 +295,14 @@ class WXAPIBot:
         if response.get("code", 0):
             return response.get("data")
         raise WXHelperReqError(api_type, repsonse=json.dumps(response))
-    
-    def get_ninckname(self, wxid ,chatroomid=None):
+
+    def get_ninckname(self, wxid, chatroomid=None):
         """
         通过wxid获取nickname,如果传入了group_id则获取在群聊中的nickname
-        :return: nickname 
+        :return: nickname
         """
         if chatroomid:
-            nickname = self.get_member_nickname(chatroomid=chatroomid,wxid=wxid)
+            nickname = self.get_member_nickname(chatroomid=chatroomid, wxid=wxid)
         else:
             nickname = self.query_nickname(wxid)
         return nickname
@@ -318,29 +317,10 @@ class WXAPIBot:
             for table in db_info["tables"]:
                 if table_name == table["name"]:
                     return db_handler
-        raise WXHelperError(
-            f"Can't find table_name in db_handles, Table: {table_name}.", api_type="-1"
-        )
-
-    # def send_msg_at(self, msg, chat_room_id, wxids=["notify@all"]):
-    #     """
-    #     向指定聊天群发送at用户文本
-    #     msg: 文本信息
-    #     chat_room_id: 群id
-    #     wxids: at指定的用户数组,默认at所有人
-    #     """
-    #     payloads = json.dumps(
-    #         {"wxids": ",".join(wxids), "msg": msg, "chatRoomId": chat_room_id}
-    #     )
-    #     # 发送文本
-    #     response = self.api_request(api_type="3", payloads=payloads)
-    #     if response.get("code", 0):
-    #         return response
-    #     return None
+        raise WXHelperError(f"Can't find table_name in db_handles, Table: {table_name}.", api_type="-1")
 
 
 class LazyDict:
-
     def __init__(self, wx_bot):
         self.dict = {}
         self.wx_bot = wx_bot

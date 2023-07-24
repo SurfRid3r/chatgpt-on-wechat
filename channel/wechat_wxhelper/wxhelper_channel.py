@@ -47,8 +47,11 @@ class WXHelperChannel(ChatChannel):
 
     
     def handle_msg(self, msg: dict):
+        fromuser = msg.get("fromUser")
+        fromgroup = msg.get("fromGroup")
+        isgroup = fromgroup != fromuser
         try:
-            wxhelper_cmsg = WXHelperMessage(self.wxapibot, msg, is_group=False)
+            wxhelper_cmsg = WXHelperMessage(self.wxapibot, msg, is_group=isgroup)
         except NotImplementedError as e:
             logger.debug("[WXHelper] " + str(e))
             return {"message": "fail"}
@@ -86,14 +89,20 @@ class WXHelperChannel(ChatChannel):
         """
         处理群聊信息
         """
-        pass
+        context = None
+        if cmsg.ctype == ContextType.TEXT:
+            logger.debug(f"[WXHelper] receive text for group msg: {cmsg.content}")
+            context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=True, msg=cmsg)
+            # context = self._compose_context(ContextType.TEXT, con, wxhelper_cmsg)
+        if context:
+            self.produce(context)
 
     def send(self, reply: Reply, context: Context):
         receiver = context["receiver"]
-        # 群聊
-        if context["isgroup"]:
-            # 发送群聊
-            pass
         if reply.type == ReplyType.TEXT:
             logger.info("[WXHelper] sendMsg={}, receiver={}".format(reply, receiver))
-            self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            if context["isgroup"]:
+                # 发送群聊目前不使用at人回复的方式
+                self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            else:
+                self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
