@@ -93,6 +93,11 @@ available_setting = {
     "wechatcomapp_secret": "",  # 企业微信app的secret
     "wechatcomapp_agent_id": "",  # 企业微信app的agent_id
     "wechatcomapp_aes_key": "",  # 企业微信app的aes_key
+    # wxhelper的配置
+    "wxhelper_wxaddr": "http://127.0.0.1:19088/", # 注入微信后API的地址,
+    "wxhelper_hookmsg_host": "127.0.0.1", # 注入微信后监听消息的地址
+    "wxhelper_hookmsg_port": 8000,  # 注入微信后监听消息的端口
+    "wxhelper_user_white_list": ["wxid_7elbba"], # 开启回复的个人wxid白名单
     # chatgpt指令自定义触发词
     "clear_memory_commands": ["#清除记忆"],  # 重置会话指令，必须以#开头
     # channel配置

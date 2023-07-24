@@ -33,4 +33,8 @@ def create_channel(channel_type):
         from channel.wechatcom.wechatcomapp_channel import WechatComAppChannel
 
         return WechatComAppChannel()
+    elif channel_type == "wechat_wxhelper":
+        from channel.wechat_wxhelper.wxhelper_channel import WXHelperChannel
+
+        return WXHelperChannel()
     raise RuntimeError
