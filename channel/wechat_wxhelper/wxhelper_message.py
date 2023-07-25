@@ -22,6 +22,8 @@ class WXHelperMessage(ChatMessage):
         # 发送者是群id
         if is_group:
             chatroomid = self.from_user_id
+            # 获取群聊名称=>group_name_white_list
+            self.group_name_white_list = wxapibot.get_ninckname(chatroomid)
         else:
             chatroomid = None
 
