@@ -101,8 +101,15 @@ class WXHelperChannel(ChatChannel):
         receiver = context["receiver"]
         if reply.type == ReplyType.TEXT:
             logger.info("[WXHelper] sendMsg={}, receiver={}".format(reply, receiver))
-            if context["isgroup"]:
-                # 发送群聊目前不使用at人回复的方式
-                self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
-            else:
-                self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            # if context["isgroup"]:
+            #     # 发送群聊目前不使用at人回复的方式
+            #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            # else:
+            #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+        elif reply.type == ReplyType.IMAGE_URL:
+            #TODO 从网络下载图片
+            pass
+        elif reply.type == ReplyType.IMAGE:
+            #TODO 直接发送图片
+            pass
