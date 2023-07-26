@@ -95,8 +95,9 @@ available_setting = {
     "wechatcomapp_aes_key": "",  # 企业微信app的aes_key
     # wxhelper的配置
     "wxhelper_wxaddr": "http://127.0.0.1:19088/", # 注入微信后API的地址,
-    "wxhelper_hookmsg_host": "127.0.0.1", # 注入微信后监听消息的地址
+    "wxhelper_hookmsg_host": "127.0.0.1", # 注入微信后监听消息的并将消息发送的服务器地址
     "wxhelper_hookmsg_port": 8000,  # 注入微信后监听消息的端口
+    # "wxhelper_hookmsg_host_listen": "127.0.0.1", # 监听发送消息的地址，不设置则默认为监听的是wxhelper_hookmsg_host:wxhelper_hookmsg_port
     "wxhelper_user_white_list": ["Bot"], # 开启回复的个人微信昵称
     # chatgpt指令自定义触发词
     "clear_memory_commands": ["#清除记忆"],  # 重置会话指令，必须以#开头

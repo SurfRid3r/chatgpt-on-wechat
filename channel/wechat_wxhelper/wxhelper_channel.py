@@ -36,8 +36,8 @@ class WXHelperChannel(ChatChannel):
         # TODO :2.定时任务
         # 启动listener监听hook msg端口，并且注册处理函数
         from channel.wechat_wxhelper.wxhelper_msgserver import WXBotTCPHandler, WXBotTCPServer
-
-        self.hookmsg_server = WXBotTCPServer((self.hook_host, self.hook_port), WXBotTCPHandler)
+        # 监听的是0.0.0.0:hook_port
+        self.hookmsg_server = WXBotTCPServer((conf().get("wxhelper_hookmsg_host_listen", self.hook_host), self.hook_port), WXBotTCPHandler)
         # 注册处理函数
         self.hookmsg_server.register_callback(self.handle_msg)
         # 调用API设置hook messsage server地址
