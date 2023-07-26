@@ -44,7 +44,7 @@ class WXHelperChannel(ChatChannel):
         # 调用API设置hook messsage server地址
         self.wxapibot.hook_msg(enablehttp="0", hook_ip=self.hook_host, hook_port=self.hook_port)
         # 启动服务器
-        logger.info(f"Start WXHelper server, listent:tcp:{hook_host_listen}:{self.hook_port}")
+        logger.info(f"Start WXHelper server, listen: tcp://{hook_host_listen}:{self.hook_port}")
         self.hookmsg_server.run()
 
     
@@ -74,8 +74,8 @@ class WXHelperChannel(ChatChannel):
         处理个人私聊信息
         """
         user_white_list = conf().get("wxhelper_user_white_list", [])
-        # 白名单过滤
-        if cmsg.actual_user_nickname not in user_white_list:
+        # 白名单过滤 和 排除掉自身的发送的消息
+        if cmsg.actual_user_nickname not in user_white_list and cmsg.actual_user_id != cmsg.to_user_id:
             return
         # 处理文本内容
         context = None
