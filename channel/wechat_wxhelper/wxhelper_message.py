@@ -13,6 +13,8 @@ class WXHelperMessage(ChatMessage):
         self.msg_id = msg.get("msgId")
         self.create_time = msg.get("timestamp")
         self.is_group = is_group
+        # 0表示自己接收了消息 1表示自己发送的消息
+        self.isSendMsg = msg.get("isSendMsg")
 
         # 直接是bot自己的wxid
         self.other_user_id = self.from_user_id = msg.get("fromGroup")

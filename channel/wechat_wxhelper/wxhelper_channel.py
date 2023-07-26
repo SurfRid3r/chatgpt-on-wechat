@@ -57,9 +57,12 @@ class WXHelperChannel(ChatChannel):
         except NotImplementedError as e:
             logger.debug("[WXHelper] " + str(e))
             return {"message": "fail"}
-
+        
+        if wxhelper_cmsg.isSendMsg:
+            # 自身发送了内容
+            pass
         # 群聊
-        if wxhelper_cmsg.is_group:
+        elif wxhelper_cmsg.is_group:
             self.handle_group(wxhelper_cmsg)
         # 私聊
         else:
