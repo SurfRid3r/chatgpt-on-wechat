@@ -23,16 +23,16 @@ class WXHelperMessage(ChatMessage):
         self.actual_user_id = msg.get("fromUser")
         # 发送者是群id
         if is_group:
-            chatroomid = self.from_user_id
+            self.chatroomid = self.from_user_id
             # 获取群聊名称=>group_name_white_list
-            self.group_name_white_list = wxapibot.get_ninckname(chatroomid)
+            self.group_name_white_list = wxapibot.get_ninckname(self.chatroomid)
         else:
-            chatroomid = None
+            self.chatroomid = None
 
         # 获取群聊中对应用户的nickname
         self.actual_user_nickname = wxapibot.get_ninckname(wxid=self.actual_user_id, chatroomid=self.from_user_id)
-        self.other_user_nickname = self.from_user_nickname = wxapibot.get_ninckname(wxid=self.from_user_id, chatroomid=chatroomid)
-        self.to_user_nickname = wxapibot.get_ninckname(wxid=self.to_user_id, chatroomid=chatroomid)
+        self.other_user_nickname = self.from_user_nickname = wxapibot.get_ninckname(wxid=self.from_user_id, chatroomid=self.chatroomid)
+        self.to_user_nickname = wxapibot.get_ninckname(wxid=self.to_user_id, chatroomid=self.chatroomid)
 
         if is_group and f"@{self.to_user_nickname}\u2005" in msg.get("content", ""):
             self.is_at = True
@@ -48,5 +48,9 @@ class WXHelperMessage(ChatMessage):
             # TODO 语音处理
             self.ctype = ContextType.VOICE
             raise NotImplementedError(f"Unknow message Type: {self.ctype}")
+        elif m_type == 10000:
+            # 拍一拍
+            self.ctype = ContextType.PATPAT
+            self.content = msg.get("content")
         else:
             raise NotImplementedError(f"Unknow message Type: {self.ctype}")

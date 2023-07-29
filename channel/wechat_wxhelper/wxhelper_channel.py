@@ -36,6 +36,7 @@ class WXHelperChannel(ChatChannel):
         # TODO :2.定时任务
         # 启动listener监听hook msg端口，并且注册处理函数
         from channel.wechat_wxhelper.wxhelper_msgserver import WXBotTCPHandler, WXBotTCPServer
+
         # 监听的是0.0.0.0:hook_port
         hook_host_listen = conf().get("wxhelper_hookmsg_host_listen", self.hook_host)
         self.hookmsg_server = WXBotTCPServer((hook_host_listen, self.hook_port), WXBotTCPHandler)
@@ -47,7 +48,6 @@ class WXHelperChannel(ChatChannel):
         logger.info(f"Start WXHelper server, listen: tcp://{hook_host_listen}:{self.hook_port}")
         self.hookmsg_server.run()
 
-    
     def handle_msg(self, msg: dict):
         fromuser = msg.get("fromUser")
         fromgroup = msg.get("fromGroup")
@@ -57,9 +57,9 @@ class WXHelperChannel(ChatChannel):
         except NotImplementedError as e:
             logger.debug("[WXHelper] " + str(e))
             return {"message": "fail"}
-        
+
+        # 过滤自身发送了内容
         if wxhelper_cmsg.isSendMsg:
-            # 自身发送了内容
             pass
         # 群聊
         elif wxhelper_cmsg.is_group:
@@ -67,38 +67,47 @@ class WXHelperChannel(ChatChannel):
         # 私聊
         else:
             self.handle_single(wxhelper_cmsg)
-            
+
         # 其余暂不处理
         return {"message": "success"}
-        
+
     @time_checker
     def handle_single(self, cmsg: WXHelperMessage):
         """
         处理个人私聊信息
         """
         user_white_list = conf().get("wxhelper_user_white_list", [])
-        # 白名单过滤 和 排除掉自身的发送的消息
-        if cmsg.actual_user_nickname not in user_white_list and cmsg.actual_user_id != cmsg.to_user_id:
+        # 白名单过滤
+        # 排除掉自身的发送的消息
+        if (cmsg.actual_user_nickname not in user_white_list) or (cmsg.actual_user_id == cmsg.to_user_id):
             return
+
         # 处理文本内容
         context = None
         if cmsg.ctype == ContextType.TEXT:
             logger.debug(f"[WXHelper] receive text msg: {cmsg.content}")
             context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)
             # context = self._compose_context(ContextType.TEXT, con, wxhelper_cmsg)
+        elif cmsg.ctype == ContextType.PATPAT:
+            logger.debug(f"[WXHelper] receive PATPAT from user: {cmsg.actual_user_nickname}")
+            context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)
         if context:
             self.produce(context)
-    
+
     @time_checker
     def handle_group(self, cmsg: WXHelperMessage):
         """
         处理群聊信息
         """
         context = None
+        patpat_msg = f'"{cmsg.actual_user_nickname}" 拍了拍我'
         if cmsg.ctype == ContextType.TEXT:
             logger.debug(f"[WXHelper] receive text for group msg: {cmsg.content}")
             context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=True, msg=cmsg)
             # context = self._compose_context(ContextType.TEXT, con, wxhelper_cmsg)
+        elif cmsg.ctype == ContextType.PATPAT and cmsg.content.startswith(patpat_msg):
+            logger.debug(f"[WXHelper] receive PATPAT from group user: {cmsg.actual_user_nickname}")
+            context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=True, msg=cmsg)
         if context:
             self.produce(context)
 
@@ -106,7 +115,7 @@ class WXHelperChannel(ChatChannel):
         receiver = context["receiver"]
         if reply.type == ReplyType.TEXT:
             logger.info("[WXHelper] sendMsg={}, receiver={}".format(reply, receiver))
-            self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+            self.wxapibot.send_text_msg(msg=reply.content, wxid=receiver)
             # if context["isgroup"]:
             #     # 发送群聊目前不使用at人回复的方式
             #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
@@ -115,10 +124,10 @@ class WXHelperChannel(ChatChannel):
         elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
             # 适配插件相关内容
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
-            self.wxapibot.send_text_msg(msg=reply.content, wxid=receiver)      
+            self.wxapibot.send_text_msg(msg=reply.content, wxid=receiver)
         elif reply.type == ReplyType.IMAGE_URL:
-            #TODO 从网络下载图片
+            # TODO 从网络下载图片
             pass
         elif reply.type == ReplyType.IMAGE:
-            #TODO 直接发送图片
+            # TODO 直接发送图片
             pass
