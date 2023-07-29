@@ -112,6 +112,10 @@ class WXHelperChannel(ChatChannel):
             #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
             # else:
             #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
+        elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
+            # 适配插件相关内容
+            logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
+            self.wxapibot.send_text_msg(msg=reply.content, wxid=receiver)      
         elif reply.type == ReplyType.IMAGE_URL:
             #TODO 从网络下载图片
             pass
