@@ -8,6 +8,7 @@ from config import conf
 from channel.wechat_wxhelper.utils.api import WXAPIBot
 from channel.wechat_wxhelper.wxhelper_message import WXHelperMessage
 from common.time_check import time_checker
+import tempfile, os, requests, uuid
 
 # from channel.wechat.wechat_message import *
 
@@ -19,7 +20,7 @@ from common.time_check import time_checker
 
 @singleton
 class WXHelperChannel(ChatChannel):
-    NOT_SUPPORT_REPLYTYPE = [ReplyType.VOICE, ReplyType.IMAGE, ReplyType.IMAGE_URL]
+    NOT_SUPPORT_REPLYTYPE = [ReplyType.VOICE]
 
     def __init__(self):
         super().__init__()
@@ -31,12 +32,18 @@ class WXHelperChannel(ChatChannel):
         self.hook_host = conf().get("wxhelper_hookmsg_host", "127.0.0.1")
         self.hook_port = int(conf().get("wxhelper_hookmsg_port", 8000))
 
+        # 用来保存图片等文件的临时目录
+        self.tmp_dir = os.path.join(tempfile.gettempdir(), "wxhelper")
+
     def startup(self):
         # TODO :1.后续添加自动注入并启动微信
         # TODO :2.定时任务
         # 启动listener监听hook msg端口，并且注册处理函数
         from channel.wechat_wxhelper.wxhelper_msgserver import WXBotTCPHandler, WXBotTCPServer
 
+        # 保证临时文件夹存在
+        if not os.path.exists(self.tmp_dir):
+            os.makedirs(self.tmp_dir)
         # 监听的是0.0.0.0:hook_port
         hook_host_listen = conf().get("wxhelper_hookmsg_host_listen", self.hook_host)
         self.hookmsg_server = WXBotTCPServer((hook_host_listen, self.hook_port), WXBotTCPHandler)
@@ -123,11 +130,18 @@ class WXHelperChannel(ChatChannel):
             #     self.wxapibot.send_text_msg(msg=reply.content ,wxid=receiver)
         elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
             # 适配插件相关内容
-            logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
+            logger.info("[WXHelper] send system reply={}, receiver={}".format(reply, receiver))
             self.wxapibot.send_text_msg(msg=reply.content, wxid=receiver)
         elif reply.type == ReplyType.IMAGE_URL:
-            # TODO 从网络下载图片
-            pass
+            img_url = reply.content
+            logger.info("[WXHelper] send imageurl={}, receiver={}".format(reply, receiver))
+            img_path = os.path.join(self.tmp_dir, uuid.uuid4().hex + ".jpg")
+            response = requests.get(img_url)
+            with open(img_path, "wb") as f:
+                f.write(response.content)
+            self.wxapibot.send_img(filepath=img_path, wxid=receiver)
+            os.remove(img_path)
         elif reply.type == ReplyType.IMAGE:
-            # TODO 直接发送图片
-            pass
+            img_path = reply.content
+            logger.info("[WXHelper] sendimage={}, receiver={}".format(reply, receiver))
+            self.wxapibot.send_img(filepath=img_path, wxid=receiver)

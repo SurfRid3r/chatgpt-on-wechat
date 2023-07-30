@@ -112,6 +112,25 @@ class WXAPIBot:
         else:
             logger.warning(f"[WXAPIBot]Sending msg at fail, Payload: {payloads}, Repsonse: {json.dumps(response)}")
             return None
+    
+    def send_img(self, filepath, wxid="filehelper"):
+        """
+        5.发送图片
+        filePath: 图片路径
+        wxid: 接收人wxid
+        :return:
+            reponse:发送成功
+            None:发送失败
+        """
+        logger.debug(f"[WXAPIBot]Sending image: {filepath} .")
+        api_type = "5"
+        payloads = json.dumps({"wxid": wxid, "imagePath": filepath})
+        response = self.api_request(api_type, payloads=payloads)
+        if response.get("code", 0):
+            return response
+        else:
+            logger.warning(f"[WXAPIBot]Sending image fail, Payload: {payloads}, Repsonse: {json.dumps(response)}")
+            return None
 
     def send_file_msg(self, filepath, wxid="filehelper"):
         """
