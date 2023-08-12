@@ -312,7 +312,7 @@ class WXAPIBot:
         )
         response = self.api_request(api_type, payloads=payloads)
         if response.get("code", 0):
-            return response.get("data")
+            return response.get("name")
         raise WXHelperReqError(api_type, repsonse=json.dumps(response))
 
     def get_ninckname(self, wxid, chatroomid=None):
